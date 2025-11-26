@@ -1,27 +1,27 @@
-# Use a Python base image
-FROM python:3.9
+FROM python:3.11-slim
 
-# Set the working directory inside the container
-WORKDIR /usr/app
+# Cài FFmpeg + các thứ cần thiết để cắt video
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy the requirements file to the container
+# Cài yt-dlp mới nhất (đỡ lỗi signature YouTube)
+RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
+    && chmod a+rx /usr/local/bin/yt-dlp
+
+WORKDIR /app
+
+# Copy và cài requirements
 COPY requirements.txt .
-
-# Install FFmpeg
-RUN apt-get update && apt-get install -y ffmpeg
-
-# Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the FastAPI app code to the container
-COPY main.py /usr/app
+# Copy toàn bộ code
+COPY . .
 
-ENV PORT 80
-ENV DOWNLOAD_PATH /usr/downloads
-ENV FFMPEG_LOCATION /usr/bin/ffmpeg
+# Mở port
+EXPOSE 10000
 
-# Expose the port on which the FastAPI app will run
-EXPOSE $PORT
-
-# Set the command to run the FastAPI app when the container starts
-ENTRYPOINT uvicorn main:app --host 0.0.0.0 --port $PORT
+# Chạy server
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
